@@ -1,0 +1,23 @@
+{
+  "name": "coinbase-trader",
+  "version": "1.0.0",
+  "description": "Trading bot for Coinbase",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bitcoin",
+    "coinbase",
+    "trading",
+    "bot"
+  ],
+  "author": "Jake See",
+  "license": "MIT",
+  "dependencies": {
+    "animation-loops": "^2.0.4",
+    "coinbase": "^2.0.6",
+    "express": "^4.16.2",
+    "socket.io": "^2.0.4"
+  }
+}
