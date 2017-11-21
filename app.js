@@ -10,9 +10,6 @@ var client = new coinbase({
 	'apiSecret': config.apiSecret
 });
 
-
-
-
 var wallet = function() {
 	this.id = 0;
 	this.amount = 0;
@@ -84,6 +81,8 @@ var handle = tick.add(function(elapsed, delta, stop) {
 			getSpotPrice('BTC', 'SGD'),
 			getSpotPrice('ETH', 'SGD'),
 			getSpotPrice('LTC', 'SGD'),
+
+			getBuyQuote('BTC', config.xfersId),
 		];
 
 		Promise.all(promises).then(values => {
@@ -98,6 +97,8 @@ var handle = tick.add(function(elapsed, delta, stop) {
 			console.log('BTC: $', Number(wallets['BTC'].buyPrice).toFixed(2), '/ $', Number(wallets['BTC'].spotPrice).toFixed(2));
 			console.log('ETH: $', Number(wallets['ETH'].buyPrice).toFixed(2), '/ $', Number(wallets['ETH'].spotPrice).toFixed(2));
 			console.log('LTC: $', Number(wallets['LTC'].buyPrice).toFixed(2), '/ $', Number(wallets['LTC'].spotPrice).toFixed(2));
+
+			console.log(wallets['BTC'].buyQuote);
 		})
 	}
 });
@@ -110,6 +111,24 @@ function getBuyPrice(digitalCurrency, fiatCurrency)
 			wallets[digitalCurrency].buyPrice = obj.data.amount
 
 			resolve(digitalCurrency + '-' + fiatCurrency);
+		});
+	});
+}
+
+function getBuyQuote(digitalCurrency, paymentMethodId)
+{
+	return new Promise((resolve, reject) => {
+		client.getAccount(wallets[digitalCurrency].id, function(err, account) {
+			account.buy({
+				'amount' : 1,
+				'currency': digitalCurrency,
+				'payment_method': paymentMethodId,
+				'quote' : true,
+			}, function(err, tx) {
+				wallets[digitalCurrency].buyQuote = tx;
+
+				resolve('getBuyQuote: ' + digitalCurrency);
+			});
 		});
 	});
 }
