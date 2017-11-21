@@ -82,11 +82,11 @@ var handle = tick.add(function(elapsed, delta, stop) {
 			getSpotPrice('ETH', 'SGD'),
 			getSpotPrice('LTC', 'SGD'),
 
-			getBuyQuote('BTC', config.xfersId),
+			getBuyCommit('BTC', config.xfersId, 95, 400),
 		];
 
 		Promise.all(promises).then(values => {
-			console.log('\033c');
+			// console.log('\033c');
 			console.log('BTC: invested $', wallets['BTC'].invested, '; current value: $', wallets['BTC'].value(), '; gain: $', wallets['BTC'].gain());
 			console.log('ETH: invested $', wallets['ETH'].invested, '; current value: $', wallets['ETH'].value(), '; gain: $', wallets['ETH'].gain());
 			console.log('LTC: invested $', wallets['LTC'].invested, '; current value: $', wallets['LTC'].value(), '; gain: $', wallets['LTC'].gain());
@@ -126,6 +126,27 @@ function getBuyQuote(digitalCurrency, paymentMethodId)
 				'quote' : true,
 			}, function(err, tx) {
 				wallets[digitalCurrency].buyQuote = tx;
+
+				console.log(err);
+
+				resolve('getBuyQuote: ' + digitalCurrency);
+			});
+		});
+	});
+}
+
+function getBuyCommit(digitalCurrency, paymentMethodId, buyLimit, buyTotal) {
+	return new Promise((resolve, reject) => {
+		client.getAccount(wallets[digitalCurrency].id, function(err, account) {
+			account.buy({
+				'total' : buyTotal,
+				'currency' : 'SGD',
+				'payment_method': paymentMethodId,
+				'commit' : false,
+			}, function(err, tx) {
+				wallets[digitalCurrency].buyQuote = tx;
+
+				console.log(err);
 
 				resolve('getBuyQuote: ' + digitalCurrency);
 			});
