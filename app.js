@@ -82,11 +82,11 @@ var handle = tick.add(function(elapsed, delta, stop) {
 			getSpotPrice('ETH', 'SGD'),
 			getSpotPrice('LTC', 'SGD'),
 
-			getBuyCommit('BTC', config.xfersId, 95, 400),
+			getBuyPrice('BTC', 'SGD'),
 		];
 
 		Promise.all(promises).then(values => {
-			// console.log('\033c');
+			console.log('\033c');
 			console.log('BTC: invested $', wallets['BTC'].invested, '; current value: $', wallets['BTC'].value(), '; gain: $', wallets['BTC'].gain());
 			console.log('ETH: invested $', wallets['ETH'].invested, '; current value: $', wallets['ETH'].value(), '; gain: $', wallets['ETH'].gain());
 			console.log('LTC: invested $', wallets['LTC'].invested, '; current value: $', wallets['LTC'].value(), '; gain: $', wallets['LTC'].gain());
@@ -98,7 +98,10 @@ var handle = tick.add(function(elapsed, delta, stop) {
 			console.log('ETH: $', Number(wallets['ETH'].buyPrice).toFixed(2), '/ $', Number(wallets['ETH'].spotPrice).toFixed(2));
 			console.log('LTC: $', Number(wallets['LTC'].buyPrice).toFixed(2), '/ $', Number(wallets['LTC'].spotPrice).toFixed(2));
 
-			console.log(wallets['BTC'].buyQuote);
+			console.log('If gain target = 20%, then additional investment = $', ((wallets.totalGain() - 0.2 * wallets.totalInvested())/0.2).toFixed(2));
+			console.log('If gain target = 25%, then additional investment = $', ((wallets.totalGain() - 0.25 * wallets.totalInvested())/0.25).toFixed(2));
+			console.log('If gain target = 30%, then additional investment = $', ((wallets.totalGain() - 0.3 * wallets.totalInvested())/0.3).toFixed(2));
+			console.log('If gain target = 40%, then additional investment = $', ((wallets.totalGain() - 0.4 * wallets.totalInvested())/0.4).toFixed(2));
 		})
 	}
 });
