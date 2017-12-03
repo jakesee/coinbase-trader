@@ -1,210 +1,115 @@
+// environment
+var config = {};
+config.apiKey = process.env.apiKey;
+config.apiSecret = process.env.apiSecret;
+config.xfersId = process.env.xfersId;
+config.ccId = process.env.ccId;
 
+// utitlity
+var calculator = require('./calculator.js');
+var calc = new calculator();
+calc.setTargetBuyPrice(135.15, 0);
+calc.setPredictSellPrice(140, 0);
+
+// fomattting helping
+var columnify = require('columnify');
+var wait = require('wait-for-stuff');;
 
 // Coinbase stuff
-var config = require('./config.js');
-var config = new config();
-
 var coinbase = require('coinbase').Client;
 var client = new coinbase({
 	'apiKey': config.apiKey,
 	'apiSecret': config.apiSecret
 });
+var exchange = require('./exchange.js');
+exchange = new exchange(client);
 
-var wallet = function() {
-	this.id = 0;
-	this.amount = 0;
-	this.invested = 0;
-	this.buyPrice = 0;
-	this.sellPrice = 0;
-	this.spotPrice = 0;
-	this.spread = function() { return (this.buyPrice - this.sellPrice).toFixed(2); };
-	this.value = function() { return (this.sellPrice * this.amount).toFixed(2); }
-	this.gain = function() { return (this.value()  - this.invested).toFixed(2); };
-};
-var wallets = {
-	'BTC': new wallet,
-	'ETH': new wallet,
-	'LTC': new wallet,
-	totalGain: function() {
-		return (Number(this.BTC.gain()) + Number(this.LTC.gain()) + Number(this.ETH.gain())).toFixed(2);
-	},
-	totalInvested: function() {
-		return Number(this.BTC.invested) + Number(this.LTC.invested) + Number(this.ETH.invested);	
-	},
-	totalGainPercent: function() {
-		return (this.totalGain() / this.totalInvested() * 100).toFixed(2);
-	},
-};
 
-// This chunk of code will populate wallets data, but this is asynchornous,
-// so we will need to wait for it to complete before making any trade decisions
-client.getAccounts({}, function(err, accounts) {
-	accounts.forEach(function(account) {
-		var type = account.balance.currency;
-		wallets[type]['id'] = account.id;
-		wallets[type]['amount'] = Number(account.balance.amount);
+var portfolio = wait.for.promise(exchange.getPortfolio());
 
-		client.getAccount(account.id, function(err, acc) {
-			acc.getTransactions({}, function(err, txs) {
-				txs.forEach(function(tx) {
-					if(tx.type === 'buy')
-					{
-						wallets[type]['invested'] += Number(tx.native_amount.amount);
-					}
-					else if(tx.type === 'sell')
-					{
-						wallets[type]['invested'] -= Number(tx.native_amount.amount);	
-					}
-				});
-			});
-		});
-	});
-});
+var nettPrincipal = portfolio.BTC.principal + portfolio.ETH.principal + portfolio.LTC.principal;
+
+console.log(nettPrincipal);
+process.exit(); TODO
 
 // Create the game loop
 var tick = require('animation-loops');
 var lastTime = 0;
 var handle = tick.add(function(elapsed, delta, stop) {
 
-	if(elapsed - lastTime >= 5000) {
+	// Rate-limiting is 10,000 per hour or 
+	if(elapsed - lastTime >= 5000)
+	{
 		lastTime = elapsed;
 
 		var promises = [
-			getBuyPrice('BTC', 'SGD'),
-			getBuyPrice('ETH', 'SGD'),
-			getBuyPrice('LTC', 'SGD'),
+			getBuyCommit('LTC', config.xfersId, 1000, false),
 
-			getSellPrice('BTC', 'SGD'),
-			getSellPrice('ETH', 'SGD'),
-			getSellPrice('LTC', 'SGD'),
-
-			getSpotPrice('BTC', 'SGD'),
-			getSpotPrice('ETH', 'SGD'),
 			getSpotPrice('LTC', 'SGD'),
+			// getSpotPrice('ETH', 'SGD'),
+			// getSpotPrice('LTC', 'SGD'),
 
-			getBuyPrice('BTC', 'SGD'),
+			getSpotPrice('LTC', 'USD'),
+			// getSpotPrice('ETH', 'USD'),
+			// getSpotPrice('LTC', 'USD'),
 		];
 
 		Promise.all(promises).then(values => {
-			console.log('\033c');
-			console.log('BTC: invested $', wallets['BTC'].invested, '; current value: $', wallets['BTC'].value(), '; gain: $', wallets['BTC'].gain());
-			console.log('ETH: invested $', wallets['ETH'].invested, '; current value: $', wallets['ETH'].value(), '; gain: $', wallets['ETH'].gain());
-			console.log('LTC: invested $', wallets['LTC'].invested, '; current value: $', wallets['LTC'].value(), '; gain: $', wallets['LTC'].gain());
-			console.log('Total Gain: $', wallets.totalGain());
-			console.log('Total Invested: $', wallets.totalInvested());
-			console.log('Gain (%): ', wallets.totalGainPercent(), '%');
-			console.log('\n');
-			console.log('BTC: $', Number(wallets['BTC'].buyPrice).toFixed(2), '/ $', Number(wallets['BTC'].spotPrice).toFixed(2));
-			console.log('ETH: $', Number(wallets['ETH'].buyPrice).toFixed(2), '/ $', Number(wallets['ETH'].spotPrice).toFixed(2));
-			console.log('LTC: $', Number(wallets['LTC'].buyPrice).toFixed(2), '/ $', Number(wallets['LTC'].spotPrice).toFixed(2));
+			
+			var tx = values[0];
+			var btcCommit = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+			btcCommit = btcCommit.toFixed(2);
 
-			console.log('If gain target = 20%, then additional investment = $', ((wallets.totalGain() - 0.2 * wallets.totalInvested())/0.2).toFixed(2));
-			console.log('If gain target = 25%, then additional investment = $', ((wallets.totalGain() - 0.25 * wallets.totalInvested())/0.25).toFixed(2));
-			console.log('If gain target = 30%, then additional investment = $', ((wallets.totalGain() - 0.3 * wallets.totalInvested())/0.3).toFixed(2));
-			console.log('If gain target = 40%, then additional investment = $', ((wallets.totalGain() - 0.4 * wallets.totalInvested())/0.4).toFixed(2));
+			var data = [{
+				'Value': portfolio.LTC.principal,
+				'Spot LTC/SGD': values[1],
+				'Spot LTC/USD': values[2],
+				'Quote LTC/SGD': btcCommit,
+				'Buy LTC/SGD': calc.targetBuyPrice,
+			}];
+
+			console.log(columnify(data));
+
+			if(btcCommit < calc.targetBuyPrice)
+			{
+				// tx.commit(function(err, response) {
+				// 	console.log(response);
+				// 	console.log(err);
+				// });
+				// stop();
+			}
 		})
 	}
 });
 
-
-function getBuyPrice(digitalCurrency, fiatCurrency)
-{
+function getSpotPrice(digitalCurrency, fiatCurrency) {
 	return new Promise((resolve, reject) => {
-		client.getBuyPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			wallets[digitalCurrency].buyPrice = obj.data.amount
-
-			resolve(digitalCurrency + '-' + fiatCurrency);
+		client.getSpotPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
+			resolve(Number(obj.data.amount).toFixed(2));
 		});
 	});
 }
 
-function getBuyQuote(digitalCurrency, paymentMethodId)
-{
+function getBuyCommit(digitalCurrency, paymentMethodId, buyTotal, commit) {
 	return new Promise((resolve, reject) => {
-		client.getAccount(wallets[digitalCurrency].id, function(err, account) {
-			account.buy({
-				'amount' : 1,
-				'currency': digitalCurrency,
-				'payment_method': paymentMethodId,
-				'quote' : true,
-			}, function(err, tx) {
-				wallets[digitalCurrency].buyQuote = tx;
-
-				console.log(err);
-
-				resolve('getBuyQuote: ' + digitalCurrency);
-			});
-		});
-	});
-}
-
-function getBuyCommit(digitalCurrency, paymentMethodId, buyLimit, buyTotal) {
-	return new Promise((resolve, reject) => {
-		client.getAccount(wallets[digitalCurrency].id, function(err, account) {
+		client.getAccount(portfolio[digitalCurrency].id, function(err, account) {
 			account.buy({
 				'total' : buyTotal,
 				'currency' : 'SGD',
 				'payment_method': paymentMethodId,
-				'commit' : false,
+				'commit' : commit,
 			}, function(err, tx) {
-				wallets[digitalCurrency].buyQuote = tx;
-
-				console.log(err);
-
-				resolve('getBuyQuote: ' + digitalCurrency);
+				resolve(tx);
 			});
 		});
 	});
 }
 
-function getSellPrice(digitalCurrency, fiatCurrency)
-{
-	return new Promise((resolve, reject) => {
-		client.getSellPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			wallets[digitalCurrency].sellPrice = obj.data.amount
-
-			resolve(digitalCurrency + '-' + fiatCurrency);
-		});
-	});
-}
-
-function getSpotPrice(digitalCurrency, fiatCurrency)
-{
-	return new Promise((resolve, reject) => {
-		client.getSpotPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			wallets[digitalCurrency].spotPrice = obj.data.amount
-
-			resolve(digitalCurrency + '-' + fiatCurrency);
-		});
-	});
-}
 
 
-// Create the server
-const app = require('express')();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-const hostname = '0.0.0.0';
-const port = 3000;
 
-// create the app
 
-app.get('/', function(req, res) {
-	res.sendFile(__dirname + '/resources/views/index.html');
-});
 
-io.on('connection', function(socket){
-	console.log('a user connected');
-	socket.on('disconnect', function(socket) {
-		console.log('user disconnected');
-	});
 
-	socket.on('chat message', function(msg) {
-		console.log('Message: ' + msg);
-		io.emit('chat message', msg);
-	});
-});
 
-http.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
-});
+
