@@ -7,9 +7,10 @@ config.ccId = process.env.ccId;
 
 // utitlity
 var calculator = require('./calculator.js');
-var calc = new calculator();
-calc.setTargetBuyPrice(135.15, 0);
-calc.setPredictSellPrice(140, 0);
+var LTC = new calculator();
+LTC.setPredictSellPrice(140, 0.01);
+var BTC = new calculator();
+BTC.setPredictSellPrice(15750, 0.005);
 
 // fomattting helping
 var columnify = require('columnify');
@@ -37,8 +38,9 @@ var handle = tick.add(function(elapsed, delta, stop) {
 
 		var promises = [
 			exchange.getBuyCommit('BTC', config.xfersId, 1000),
-			exchange.getSpotPrice('BTC', 'SGD'),
-			exchange.getSpotPrice('BTC', 'USD'),
+			exchange.getBuyCommit('LTC', config.xfersId, 1000),
+			// exchange.getSpotPrice('BTC', 'SGD'),
+			// exchange.getSpotPrice('BTC', 'USD'),
 
 			// exchange.getBuyCommit('LTC', config.xfersId, 1000),
 			// exchange.getSpotPrice('LTC', 'SGD'),
@@ -46,33 +48,72 @@ var handle = tick.add(function(elapsed, delta, stop) {
 		];
 
 		Promise.all(promises).then(values => {		
-			var tx = values[0];
-			var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-			quote = quote.toFixed(2);
 
-			var data = [{
-				'Value': exchange.portfolio.LTC.principal,
-				'Spot BTC/SGD': values[1],
-				'Spot BTC/USD': values[2],
-				'Quote BTC/SGD': quote,
-				'Buy BTC/SGD': calc.targetBuyPrice,
-			}];
+			var btcTx = values[0];
+			var ltcTx = values[1];
+			var btcQuote = getQuote(values[0]);
+			var ltcQuote = getQuote(values[1]);		
 
-			// echo data table
-			console.log(columnify(data));
+			// var data = [{
+			// 	'Value': exchange.portfolio.LTC.principal,
+			// 	'Spot BTC/SGD': values[1],
+			// 	'Spot BTC/USD': values[2],
+			// 	'Quote BTC/SGD': quote,
+			// 	'Buy BTC/SGD': calc.targetBuyPrice,
+			// }];
 
-			if(quote < calc.targetBuyPrice)
+			// // echo data table
+			console.log(columnify([{
+					'Quote BTC/SGD': btcQuote,
+					'Limit BTC/SGD': BTC.targetBuyPrice,
+
+					'Quote LTC/SGD': ltcQuote,
+					'Limit LTC/SGD': LTC.targetBuyPrice,
+				}]));
+
+			if(checkBuy(btcQuote, BTC.targetBuyPrice, btcTx))
 			{
-				console.log('Buy @', quote);
-				// tx.commit(function(err, response) {
-				// 	console.log(response);
-				// 	console.log(err);
-				// });
-				// stop();
+				BTC.targetBuyPrice = 0;
 			}
+
+			if(checkBuy(ltcQuote, LTC.targetBuyPrice, ltcTx))
+			{
+				LTC.targetBuyPrice = 0;
+			}
+
+			if(LTC.targetBuyPrice + BTC.targetBuyPrice == 0)
+			{
+				stop();
+			}
+
 		}, failed => {
 			console.log(failed);
 			stop();
 		});
 	}
 });
+
+
+function getQuote(tx)
+{
+	var quote = tx;
+	var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+	quote = quote.toFixed(2);
+	return quote
+}
+
+function checkBuy(quote, buyLimit, tx)
+{
+	if(quote < buyLimit)
+	{
+		console.log('Buy @', quote);
+		tx.commit(function(err, response) {
+			console.log(response);
+			console.log(err);
+		});
+
+		return true;
+	}
+
+	return false;
+}
