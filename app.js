@@ -12,6 +12,7 @@ LTC.setPredictSellPrice(140, 0.01);
 var BTC = new calculator();
 BTC.setPredictSellPrice(15750, 0.005);
 BTC.targetBuyPrice = 14300;
+console.log("Limit:", BTC.targetBuyPrice);
 
 // fomattting helping
 var columnify = require('columnify');
