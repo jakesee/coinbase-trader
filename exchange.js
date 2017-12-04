@@ -33,7 +33,8 @@ exchange.prototype.getBuyCommit = function(digitalCurrency, paymentMethodId, buy
 				'payment_method': paymentMethodId,
 				'commit' : false,
 			}, function(err, tx) {
-				resolve(tx);
+				if(err != null) reject(err)
+				else resolve(tx);
 			});
 		});
 	});

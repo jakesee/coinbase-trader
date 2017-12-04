@@ -11,6 +11,7 @@ var LTC = new calculator();
 LTC.setPredictSellPrice(140, 0.01);
 var BTC = new calculator();
 BTC.setPredictSellPrice(15750, 0.005);
+BTC.targetBuyPrice = 14300;
 
 // fomattting helping
 var columnify = require('columnify');
@@ -29,6 +30,7 @@ wait.for.promise(exchange.initPortfolio());
 // Create the game loop
 var tick = require('animation-loops');
 var lastTime = 0;
+var max = 120;
 var handle = tick.add(function(elapsed, delta, stop) {
 
 	// Rate-limiting is 10,000 per hour or 
@@ -37,8 +39,8 @@ var handle = tick.add(function(elapsed, delta, stop) {
 		lastTime = elapsed;
 
 		var promises = [
-			exchange.getBuyCommit('BTC', config.xfersId, 1000),
-			exchange.getBuyCommit('LTC', config.xfersId, 1000),
+			exchange.getBuyCommit('BTC', config.xfersId, max),
+			// exchange.getBuyCommit('LTC', config.xfersId, 1000),
 			// exchange.getSpotPrice('BTC', 'SGD'),
 			// exchange.getSpotPrice('BTC', 'USD'),
 
@@ -49,10 +51,11 @@ var handle = tick.add(function(elapsed, delta, stop) {
 
 		Promise.all(promises).then(values => {		
 
+			max++;
 			var btcTx = values[0];
-			var ltcTx = values[1];
 			var btcQuote = getQuote(values[0]);
-			var ltcQuote = getQuote(values[1]);		
+			// var ltcTx = values[1];
+			// var ltcQuote = getQuote(values[1]);		
 
 			// var data = [{
 			// 	'Value': exchange.portfolio.LTC.principal,
@@ -63,32 +66,33 @@ var handle = tick.add(function(elapsed, delta, stop) {
 			// }];
 
 			// // echo data table
-			console.log(columnify([{
-					'Quote BTC/SGD': btcQuote,
-					'Limit BTC/SGD': BTC.targetBuyPrice,
+			// console.log(columnify([{
+			// 		'Quote BTC/SGD': btcQuote,
+			// 		'Limit BTC/SGD': BTC.targetBuyPrice,
 
-					'Quote LTC/SGD': ltcQuote,
-					'Limit LTC/SGD': LTC.targetBuyPrice,
-				}]));
+			// 		// 'Quote LTC/SGD': ltcQuote,
+			// 		// 'Limit LTC/SGD': LTC.targetBuyPrice,
+			// 	}]));
 
 			if(checkBuy(btcQuote, BTC.targetBuyPrice, btcTx))
 			{
 				BTC.targetBuyPrice = 0;
-			}
-
-			if(checkBuy(ltcQuote, LTC.targetBuyPrice, ltcTx))
-			{
-				LTC.targetBuyPrice = 0;
-			}
-
-			if(LTC.targetBuyPrice + BTC.targetBuyPrice == 0)
-			{
 				stop();
 			}
 
+			// if(checkBuy(ltcQuote, LTC.targetBuyPrice, ltcTx))
+			// {
+			// 	LTC.targetBuyPrice = 0;
+			// }
+
+			// if(LTC.targetBuyPrice + BTC.targetBuyPrice == 0)
+			// {
+			// 	stop();
+			// }
+
 		}, failed => {
-			console.log(failed);
-			stop();
+			// console.log('Cannot buy ', max);
+			max--;
 		});
 	}
 });
@@ -104,6 +108,8 @@ function getQuote(tx)
 
 function checkBuy(quote, buyLimit, tx)
 {
+	if(buyLimit == 0) return false;
+
 	if(quote < buyLimit)
 	{
 		console.log('Buy @', quote);
