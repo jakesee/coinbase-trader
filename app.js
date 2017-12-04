@@ -51,8 +51,11 @@ var handle = tick.add(function(elapsed, delta, stop) {
 
 			var btcTx = values[0];
 			var ltcTx = values[1];
-			var btcQuote = getQuote(values[0]);
-			var ltcQuote = getQuote(values[1]);		
+			console.log(ltcTx); process.exit();
+			var btcQuote = getQuote(btcTx);
+			var ltcQuote = getQuote(ltcTx);
+
+
 
 			// var data = [{
 			// 	'Value': exchange.portfolio.LTC.principal,
@@ -96,10 +99,8 @@ var handle = tick.add(function(elapsed, delta, stop) {
 
 function getQuote(tx)
 {
-	var quote = tx;
 	var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-	quote = quote.toFixed(2);
-	return quote
+	return quote.toFixed(2);
 }
 
 function checkBuy(quote, buyLimit, tx)
@@ -107,10 +108,10 @@ function checkBuy(quote, buyLimit, tx)
 	if(quote < buyLimit)
 	{
 		console.log('Buy @', quote);
-		tx.commit(function(err, response) {
-			console.log(response);
-			console.log(err);
-		});
+		// tx.commit(function(err, response) {
+		// 	console.log(response);
+		// 	console.log(err);
+		// });
 
 		return true;
 	}

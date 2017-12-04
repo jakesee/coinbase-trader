@@ -19,7 +19,10 @@ exchange.prototype.getSellPrice = function(digitalCurrency, fiatCurrency)
 {
 	return new Promise((resolve, reject) => {
 		this.client.getSellPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			resolve(Number(obj.data.amount).toFixed(2));
+			resolve({
+				'currency': digitalCurrency,
+				'amount': Number(obj.data.amount).toFixed(2)
+			});
 		});
 	});
 }
@@ -33,7 +36,8 @@ exchange.prototype.getBuyCommit = function(digitalCurrency, paymentMethodId, buy
 				'payment_method': paymentMethodId,
 				'commit' : false,
 			}, function(err, tx) {
-				resolve(tx);
+				if(err != null) reject(err);
+				else resolve(tx);
 			});
 		});
 	});
@@ -122,5 +126,7 @@ exchange.prototype.initPortfolio = function() {
 		resolve(this.portfolio);
 	});
 }
+
+
 
 module.exports = exchange;
