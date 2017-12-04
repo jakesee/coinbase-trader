@@ -8,9 +8,9 @@ config.ccId = process.env.ccId;
 // utitlity
 var calculator = require('./calculator.js');
 var LTC = new calculator();
-LTC.setPredictSellPrice(140, 0.01);
+LTC.setPredictSellPrice(140, 0.8);
 var BTC = new calculator();
-BTC.setPredictSellPrice(15750, 0.005);
+BTC.setPredictSellPrice(15750, 0.01);
 
 // fomattting helping
 var columnify = require('columnify');
@@ -38,7 +38,7 @@ var handle = tick.add(function(elapsed, delta, stop) {
 
 		var promises = [
 			exchange.getBuyCommit('BTC', config.xfersId, 1000),
-			exchange.getBuyCommit('LTC', config.xfersId, 1000),
+			exchange.getBuyCommit('LTC', config.xfersId, 500),
 			// exchange.getSpotPrice('BTC', 'SGD'),
 			// exchange.getSpotPrice('BTC', 'USD'),
 
