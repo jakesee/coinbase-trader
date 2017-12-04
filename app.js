@@ -23,14 +23,7 @@ var client = new coinbase({
 });
 var exchange = require('./exchange.js');
 exchange = new exchange(client);
-
-
-var portfolio = wait.for.promise(exchange.getPortfolio());
-
-var nettPrincipal = portfolio.BTC.principal + portfolio.ETH.principal + portfolio.LTC.principal;
-
-console.log(nettPrincipal);
-process.exit(); TODO
+wait.for.promise(exchange.initPortfolio());
 
 // Create the game loop
 var tick = require('animation-loops');
@@ -43,73 +36,43 @@ var handle = tick.add(function(elapsed, delta, stop) {
 		lastTime = elapsed;
 
 		var promises = [
-			getBuyCommit('LTC', config.xfersId, 1000, false),
+			exchange.getBuyCommit('BTC', config.xfersId, 1000),
+			exchange.getSpotPrice('BTC', 'SGD'),
+			exchange.getSpotPrice('BTC', 'USD'),
 
-			getSpotPrice('LTC', 'SGD'),
-			// getSpotPrice('ETH', 'SGD'),
-			// getSpotPrice('LTC', 'SGD'),
-
-			getSpotPrice('LTC', 'USD'),
-			// getSpotPrice('ETH', 'USD'),
-			// getSpotPrice('LTC', 'USD'),
+			// exchange.getBuyCommit('LTC', config.xfersId, 1000),
+			// exchange.getSpotPrice('LTC', 'SGD'),
+			// exchange.getSpotPrice('LTC', 'USD'),
 		];
 
-		Promise.all(promises).then(values => {
-			
+		Promise.all(promises).then(values => {		
 			var tx = values[0];
-			var btcCommit = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-			btcCommit = btcCommit.toFixed(2);
+			var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+			quote = quote.toFixed(2);
 
 			var data = [{
-				'Value': portfolio.LTC.principal,
-				'Spot LTC/SGD': values[1],
-				'Spot LTC/USD': values[2],
-				'Quote LTC/SGD': btcCommit,
-				'Buy LTC/SGD': calc.targetBuyPrice,
+				'Value': exchange.portfolio.LTC.principal,
+				'Spot BTC/SGD': values[1],
+				'Spot BTC/USD': values[2],
+				'Quote BTC/SGD': quote,
+				'Buy BTC/SGD': calc.targetBuyPrice,
 			}];
 
+			// echo data table
 			console.log(columnify(data));
 
-			if(btcCommit < calc.targetBuyPrice)
+			if(quote < calc.targetBuyPrice)
 			{
+				console.log('Buy @', quote);
 				// tx.commit(function(err, response) {
 				// 	console.log(response);
 				// 	console.log(err);
 				// });
 				// stop();
 			}
-		})
+		}, failed => {
+			console.log(failed);
+			stop();
+		});
 	}
 });
-
-function getSpotPrice(digitalCurrency, fiatCurrency) {
-	return new Promise((resolve, reject) => {
-		client.getSpotPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			resolve(Number(obj.data.amount).toFixed(2));
-		});
-	});
-}
-
-function getBuyCommit(digitalCurrency, paymentMethodId, buyTotal, commit) {
-	return new Promise((resolve, reject) => {
-		client.getAccount(portfolio[digitalCurrency].id, function(err, account) {
-			account.buy({
-				'total' : buyTotal,
-				'currency' : 'SGD',
-				'payment_method': paymentMethodId,
-				'commit' : commit,
-			}, function(err, tx) {
-				resolve(tx);
-			});
-		});
-	});
-}
-
-
-
-
-
-
-
-
-

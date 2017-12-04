@@ -4,6 +4,7 @@ var wait = require('wait-for-stuff');
 
 var exchange = function(client) {
 	this.client = client;
+	this.portfolio = {};
 }
 
 exchange.prototype.getSpotPrice = function(digitalCurrency, fiatCurrency) {
@@ -25,7 +26,7 @@ exchange.prototype.getSellPrice = function(digitalCurrency, fiatCurrency)
 
 exchange.prototype.getBuyCommit = function(digitalCurrency, paymentMethodId, buyTotal) {
 	return new Promise((resolve, reject) => {
-		coinbase.getAccount(portfolio[digitalCurrency].id, function(err, account) {
+		this.client.getAccount(this.portfolio[digitalCurrency].id, function(err, account) {
 			account.buy({
 				'total' : buyTotal,
 				'currency' : 'SGD',
@@ -37,6 +38,15 @@ exchange.prototype.getBuyCommit = function(digitalCurrency, paymentMethodId, buy
 		});
 	});
 }
+
+exchange.prototype.commit = function(tx) {
+	return new Promise((resolve, reject) => {
+		tx.commit((err, response) => {
+			if(err != null) reject(err);
+			else resolve(tx);
+		});
+	});
+};
 
 exchange.prototype.getAccounts = function() {
 	return new Promise((resolve, reject) => {
@@ -65,7 +75,7 @@ exchange.prototype.getTransactions = function(account) {
 	});
 };
 
-exchange.prototype.getPortfolio = function() {
+exchange.prototype.initPortfolio = function() {
 	return new Promise((resolve, reject) => {
 
 		var portfolio = {};
@@ -106,7 +116,10 @@ exchange.prototype.getPortfolio = function() {
 
 		wait.for.predicate(() => completed >= required);
 
-		resolve(portfolio);
+		// save the portfolio data
+		this.portfolio = portfolio;
+
+		resolve(this.portfolio);
 	});
 }
 
