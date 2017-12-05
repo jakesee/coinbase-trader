@@ -18,7 +18,7 @@ calculator = new calculator(0.015, 0.015);
 // traders
 var trader = require('./trader.js');
 trader = new trader('BTCTrader', calculator, {
-	fund: 500,
+	fund: 200,
 	currency: 'BTC',
 	paymentMethodId: config.xfersId,
 	buyLimit: 14770,

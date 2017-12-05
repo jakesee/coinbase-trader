@@ -60,6 +60,8 @@ var trader = function(name, calculator, options) {
 				{
 					self.events.emit(eventNames.buying, self, tx);	
 				}
+			}, err => {
+				console.log(err);
 			});
 		}
 		else if(seller === true && spot >= options.sellLimit)
@@ -69,7 +71,7 @@ var trader = function(name, calculator, options) {
 		}
 		else
 		{
-			console.log(name, "not trading");
+			// console.log(name, "not trading");
 		}
 
 		busy = false;
