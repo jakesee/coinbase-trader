@@ -1,34 +1,87 @@
-var trader = function(name, currency, fund, calculator) {
-	this.name = name;
-	this.fund = fund;
-	this.currency = currency;
-	this.paymentMethodId = null;
+"use strict";
 
-	this.calculator = calculator;
+var wait = require('wait-for-stuff');
+var events = require('events');
+var _ = require('underscore');
+
+// **********************************
+var eventNames = {
+	error: 'error',
+	buying: 'buying',
+	bought: 'bought',
+	selling: 'selling',
+	sold: 'sold',
 };
 
-trader.prototype.trade = function() {
-	console.log('I am', this.name);
-};
-
-trader.prototype.read = function(spotPrice) {
+var trader = function(name, calculator, options) {
 	
+	// identity
+	this.name = name;
+	var self = this;
+	this.events = new events.EventEmitter();
+
+	// options
+	this.options = options;
+	_.defaults(options, {
+		fund: 500,
+		currency: 'BTC',
+		paymentMethodId: null,
+		buyLimit: 0,
+		sellLimit: Infinity
+	});
+
+	// tools
+	var calculator = calculator;
+	var busy = false;
+	var seller = false;
+
+	this.trade = function(exchange, spotPrice) {
+
+		if(busy) return;
+
+		// check whether to buy
+		var spot = spotPrice[options.currency].amount;
+		if(seller === false && spot <= options.buyLimit)
+		{
+			exchange.getBuyCommit(
+				options.currency,
+				options.paymentMethodId,
+				options.fund,
+			).then(tx => {
+				var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+				if(quote <= options.buyLimit) {
+					exchange.commit(tx).then(tx => {
+						self.events.emit(eventNames.bought, self, tx);
+					});
+
+					exchange.stop();
+				}
+				else
+				{
+					self.events.emit(eventNames.buying, self, tx);	
+				}
+			});
+		}
+		else if(seller === true && spot >= options.sellLimit)
+		{
+			// exchange.getSellCommit();
+			console.log(name, 'could have sold', options.currency, '@', spot);
+		}
+		else
+		{
+			console.log(name, "not trading");
+		}
+
+		busy = false;
+	}
 };
 
-//**************************************************
+function mock_action(data) {
+	return new Promise((resolve, reject) => {
+		wait.for.time(3);
+		resolve(data);
+	});
+}
 
-var calculator = require('./calculator.js');
-var calculator = new calculator(0.015, 0.015);
-var btcTrader1 = new trader('btcTrader1', 'BTC', 500, calculator);
-var btcTrader2 = new trader('btcTrader2', 'BTC', 500, calculator);
-var ltcTrader3 = new trader('ltcTrader3', 'LTC', 500, calculator);
-var ltcTrader4 = new trader('ltcTrader4', 'LTC', 500, calculator);
 
-module.exports = {
-	traders: [
-		btcTrader1,
-		btcTrader2,
-		ltcTrader3,
-		ltcTrader4,
-	]
-};
+module.exports = trader;
