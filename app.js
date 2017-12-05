@@ -18,10 +18,10 @@ calculator = new calculator(0.015, 0.015);
 // traders
 var trader = require('./trader.js');
 trader = new trader('BTCTrader', calculator, {
-	fund: 400,
-	currency: 'LTC',
+	fund: 500,
+	currency: 'BTC',
 	paymentMethodId: config.xfersId,
-	buyLimit: 139.2,
+	buyLimit: 14770,
 	sellLimit: Infinity
 });
 trader.events.on('bought', (trader, tx) => {
@@ -40,7 +40,7 @@ var client = new coinbase({
 	'apiSecret': config.apiSecret
 });
 var ec = require('./exchange.js');
-var exchange = new ec.Exchange(client, ['LTC']);
+var exchange = new ec.Exchange(client, ['BTC']);
 exchange.events.on(ec.eventNames.spotprice, trader.trade);
 
 
