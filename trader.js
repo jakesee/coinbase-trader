@@ -47,14 +47,12 @@ var trader = function(name, calculator, options) {
 
 		// check whether to buy
 		var spot = spotPrice[options.currency].amount;
-		console.log('spot:', spot);
 		if(options.isSeller === false && spot <= options.buyLimit)
 		{
 			attemptBuy(exchange);
 		}
 		else if(options.isSeller === true && spot >= options.sellLimit)
 		{
-			console.log('attempt sell');
 			attemptSell(exchange);
 		}
 
