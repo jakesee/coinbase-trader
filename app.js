@@ -2,7 +2,8 @@
 
 // fomattting helping
 var columnify = require('columnify');
-var wait = require('wait-for-stuff');;
+var wait = require('wait-for-stuff');
+var _ = require('underscore');
 
 // environment
 var config = {};
@@ -15,23 +16,19 @@ config.ccId = process.env.ccId;
 var calculator = require('./calculator.js');
 calculator = new calculator(0.015, 0.015);
 
-// traders
 var trader = require('./trader.js');
 trader = new trader('BTCTrader', calculator, {
 	fund: 200,
 	currency: 'BTC',
 	paymentMethodId: config.xfersId,
-	buyLimit: 14770,
-	sellLimit: Infinity
+	buyLimit: 140, // spot price cannot be negative, so wont buy
+	sellLimit: 130,
+	isSeller: true,
 });
-trader.events.on('bought', (trader, tx) => {
+trader.events.on('*', (event, trader, tx) => {
 	var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-	console.log(trader.name, 'bought', trader.options.currency, '@', quote);
-});
-trader.events.on('buying', (trader, tx) => {
-	var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-	console.log(trader.name, 'buying', trader.options.currency, '@', quote);
-});
+	console.log(trader.name, event, trader.options.currency, '@', quote);
+})
 
 // Coinbase stuff
 var coinbase = require('coinbase').Client;
@@ -45,5 +42,6 @@ exchange.events.on(ec.eventNames.spotprice, trader.trade);
 
 
 // start the trading!
-wait.for.promise(exchange.init());
-exchange.run(5000);
+var portfolio = wait.for.promise(exchange.init());
+console.log(columnify(exchange.getBillboard()));
+exchange.run(5000).mock();

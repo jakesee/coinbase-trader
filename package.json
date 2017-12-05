@@ -18,6 +18,7 @@
     "animation-loops": "^2.0.4",
     "coinbase": "^2.0.6",
     "columnify": "^1.5.4",
+    "eventemitter2": "^5.0.0",
     "fast-stats": "0.0.3",
     "mathjs": "^3.17.0",
     "underscore": "^1.8.3",

@@ -1,12 +1,13 @@
 "use strict";
 
 var wait = require('wait-for-stuff');
-var events = require('events');
+var events = require('eventemitter2');
 var _ = require('underscore');
 
 // **********************************
 var eventNames = {
-	error: 'error',
+	buy_error: 'buy_error',
+	sell_error: 'sell_error',
 	buying: 'buying',
 	bought: 'bought',
 	selling: 'selling',
@@ -18,63 +19,98 @@ var trader = function(name, calculator, options) {
 	// identity
 	this.name = name;
 	var self = this;
-	this.events = new events.EventEmitter();
+	this.events = new events.EventEmitter2({'wildcard': true});
 
 	// options
 	this.options = options;
 	_.defaults(options, {
-		fund: 500,
-		currency: 'BTC',
-		paymentMethodId: null,
-		buyLimit: 0,
-		sellLimit: Infinity
+		'fund': 500,
+		'currency': 'BTC',
+		'paymentMethodId': null,
+		'buyLimit': -Infinity,
+		'sellLimit': Infinity,
+		'isSeller': false,
 	});
 
 	// tools
 	var calculator = calculator;
-	var busy = false;
-	var seller = false;
+	var isBusy = false;
+	
+	// *****************************************
+	// privileged functions
+	// *****************************************
 
 	this.trade = function(exchange, spotPrice) {
 
-		if(busy) return;
+		if(isBusy) return;
+		isBusy = true;
 
 		// check whether to buy
 		var spot = spotPrice[options.currency].amount;
-		if(seller === false && spot <= options.buyLimit)
+		console.log('spot:', spot);
+		if(options.isSeller === false && spot <= options.buyLimit)
 		{
-			exchange.getBuyCommit(
-				options.currency,
-				options.paymentMethodId,
-				options.fund,
-			).then(tx => {
-				var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-				if(quote <= options.buyLimit) {
-					exchange.commit(tx).then(tx => {
-						self.events.emit(eventNames.bought, self, tx);
-					});
-
-					exchange.stop();
-				}
-				else
-				{
-					self.events.emit(eventNames.buying, self, tx);	
-				}
-			}, err => {
-				console.log(err);
-			});
+			attemptBuy(exchange);
 		}
-		else if(seller === true && spot >= options.sellLimit)
+		else if(options.isSeller === true && spot >= options.sellLimit)
 		{
-			// exchange.getSellCommit();
-			console.log(name, 'could have sold', options.currency, '@', spot);
-		}
-		else
-		{
-			// console.log(name, "not trading");
+			console.log('attempt sell');
+			attemptSell(exchange);
 		}
 
-		busy = false;
+		isBusy = false;
+	}
+
+
+	// *****************************************
+	// private functions
+	// *****************************************
+
+	var attemptBuy = function(exchange) {
+		exchange.getBuyCommit(
+			options.currency,
+			options.paymentMethodId,
+			options.fund,
+		).then(tx => {
+			var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+			if(quote <= options.buyLimit) {
+				exchange.commit(tx).then(tx => {
+					// toggle seller/buyer status
+					self.options.isSeller = true;
+					self.events.emit(eventNames.bought, self, tx);
+				});
+			}
+			else
+			{
+				self.events.emit(eventNames.buying, eventNames.buying, self, tx);	
+			}
+		}, err => {
+			self.events.emit(eventNames.buy_error, eventNames.buy_error, self, err);	
+		});
+	}
+
+	var attemptSell = function(exchange) {
+		exchange.getSellCommit(
+			options.currency,
+			options.paymentMethodId,
+			options.fund,
+		).then(tx => {
+			var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+			if(quote >= options.sellLimit) {
+				exchange.commit(tx).then(tx => {
+					// toggle seller/buyer status
+					self.options.isSeller = false;
+					self.events.emit(eventNames.sold, eventNames.sold, self, tx);
+				});
+			}
+			else
+			{
+				self.events.emit(eventNames.selling, eventNames.selling, self, tx);	
+			}
+		}, err => {
+			self.events.emit(eventNames.sell_error, eventNames.sell_error, self, err);
+			console.log(err);
+		});
 	}
 };
 

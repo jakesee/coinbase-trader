@@ -1,7 +1,8 @@
 "use strict";
 
 var wait = require('wait-for-stuff');
-var events = require('events');
+var events = require('eventemitter2');
+var _ = require('underscore');
 
 // **********************************
 
@@ -14,7 +15,7 @@ var exchange = function(client, currencies) {
 
 	var self = this;
 	this.client = client;
-	this.events = new events.EventEmitter(); 
+	this.events = new events.EventEmitter2({'wildcard': true}); 
 
 	// the currencies that the exchange will fetch
 	var currencies = currencies;
@@ -23,6 +24,7 @@ var exchange = function(client, currencies) {
 	var history = null;
 	var performance = {};
 	var handle = null;
+	var isMock = false;
 
 	// fetch prices
 	this.run = function(interval) {
@@ -51,10 +53,38 @@ var exchange = function(client, currencies) {
 				});
 			}
 		});
+
+		return this;
 	};
+
+	this.mock = function() {
+		isMock = true;
+		console.log('Running in mock mode.');
+	}
 
 	this.stop = function() {
 		this.handle.stop();
+	};
+
+	this.commit = function(tx) {
+		if(isMock === true)
+		{
+			return new Promise((resolve, reject) => {
+				resolve({
+					'subtotal': { amount: 123 },
+					'amount': { amount: 321 }
+				});
+			});
+		}
+		else
+		{
+			// return new Promise((resolve, reject) => {
+			// 	tx.commit((err, response) => {
+			// 		if(err != null) reject(err);
+			// 		else resolve(tx);
+			// 	});
+			// });
+		}
 	};
 }
 
@@ -83,14 +113,21 @@ exchange.prototype.getBuyCommit = function(digitalCurrency, paymentMethodId, buy
 	});
 }
 
-exchange.prototype.commit = function(tx) {
+exchange.prototype.getSellCommit = function(digitalCurrency, paymentMethodId, sellTotal) {
 	return new Promise((resolve, reject) => {
-		tx.commit((err, response) => {
-			if(err != null) reject(err);
-			else resolve(tx);
+		this.client.getAccount(this.portfolio[digitalCurrency].id, function(err, account) {
+			account.sell({
+				'total' : sellTotal,
+				'currency' : 'SGD',
+				'payment_method': paymentMethodId,
+				'commit' : false,
+			}, function(err, tx) {
+				if(err != null) reject(err);
+				else resolve(tx);
+			});
 		});
 	});
-};
+}
 
 exchange.prototype.getAccounts = function() {
 	return new Promise((resolve, reject) => {
@@ -137,17 +174,21 @@ exchange.prototype.init = function() {
 					portfolio[account.currency].id = account.id;
 					portfolio[account.currency].amount = account.balance.amount;
 					portfolio[account.currency].principal = 0;
+					portfolio[account.currency].transactions = [];
 
 					account.getTransactions({}, function(err, txs) {
 						if(err != null) reject(err);
 						else
 						{
 							txs.forEach(tx => {
-								if(tx.type === 'buy') {
+								if(tx.type === 'buy' || tx.type === 'sell') {
 									portfolio[account.currency].principal += Number(tx.native_amount.amount);
-								}
-								else if(tx.type === 'sell') {
-									portfolio[account.currency].principal += Number(tx.native_amount.amount);
+									portfolio[account.currency].transactions.push({
+										'type': tx.type,
+										'digital': tx.amount.currency,
+										'fiat': Number(tx.native_amount.amount),
+										'coin': Number(tx.amount.amount),
+									});
 								}
 							});
 
@@ -167,7 +208,37 @@ exchange.prototype.init = function() {
 	});
 }
 
+exchange.prototype.getBillboard = function() {
 
+	var calculator = require('./calculator.js');
+	calculator = new calculator(0.015, 0.015);
+
+	var data = [];
+	_.each(this.portfolio, (coin) => {
+		_.each(coin.transactions, tx => {
+			if(tx.type === 'buy')
+			{
+				var rate = (tx.fiat / tx.coin).toFixed(2);
+				data.push({
+					'type': tx.type,
+					'digital': tx.digital,
+					'fiat': tx.fiat,
+					'rate': rate,
+					'sell @ 0%': calculator.calcSellLimitFromBuyLimit(rate, 0),
+					'sell @ 1%': calculator.calcSellLimitFromBuyLimit(rate, 0.01),
+					'sell @ 2%': calculator.calcSellLimitFromBuyLimit(rate, 0.02),
+					'sell @ 3%': calculator.calcSellLimitFromBuyLimit(rate, 0.03),
+					'sell @ 5%': calculator.calcSellLimitFromBuyLimit(rate, 0.05),
+					'sell @ 8%': calculator.calcSellLimitFromBuyLimit(rate, 0.08),
+					'sell @ 13%': calculator.calcSellLimitFromBuyLimit(rate, 0.13),
+					'sell @ 21%': calculator.calcSellLimitFromBuyLimit(rate, 0.21),
+				});
+			}
+		});
+	});
+
+	return data;
+}
 
 module.exports = {
 	Exchange: exchange,
