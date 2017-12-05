@@ -1,25 +1,68 @@
+"use strict";
+
 var wait = require('wait-for-stuff');
+var events = require('events');
 
 // **********************************
 
-var exchange = function(client) {
+var eventNames = {
+	error: 'error',
+	spotprice: 'spotprice'
+};
+
+var exchange = function(client, currencies) {
+
+	var self = this;
 	this.client = client;
-	this.portfolio = {};
+	this.events = new events.EventEmitter(); 
+
+	// the currencies that the exchange will fetch
+	var currencies = currencies;
+
+	// history
+	var history = null;
+	var performance = {};
+	var handle = null;
+
+	// fetch prices
+	this.run = function(interval) {
+		var lastTime = 0;
+		var tick = require('animation-loops');
+		this.handle = tick.add(function(elapsed, delta, stop) {
+			if(elapsed - lastTime > interval)
+			{
+				lastTime = elapsed;
+
+				var promises = currencies.map(currency => self.getSpotPrice(currency, 'SGD'));
+				var timestamp = new Date().getTime();
+
+				Promise.all(promises).then(values => {
+					var spot = [];
+					values.forEach(value => {
+						var price = value.data;
+						price.timestamp = timestamp;
+						spot[price.base] = price;
+						spot[price.base].amount = Number(spot[price.base].amount);
+					});
+
+					self.events.emit(eventNames.spotprice, self, spot);
+				}, error => {
+					self.events.emit(eventNames.error, self, error);
+				});
+			}
+		});
+	};
+
+	this.stop = function() {
+		this.handle.stop();
+	};
 }
 
 exchange.prototype.getSpotPrice = function(digitalCurrency, fiatCurrency) {
 	return new Promise((resolve, reject) => {
 		this.client.getSpotPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			resolve(Number(obj.data.amount).toFixed(2));
-		});
-	});
-}
-
-exchange.prototype.getSellPrice = function(digitalCurrency, fiatCurrency)
-{
-	return new Promise((resolve, reject) => {
-		this.client.getSellPrice({'currencyPair': digitalCurrency + '-' + fiatCurrency}, function(err, obj) {
-			resolve(Number(obj.data.amount).toFixed(2));
+			// resolve(Number(obj.data.amount).toFixed(2));
+			resolve(obj);
 		});
 	});
 }
@@ -33,7 +76,7 @@ exchange.prototype.getBuyCommit = function(digitalCurrency, paymentMethodId, buy
 				'payment_method': paymentMethodId,
 				'commit' : false,
 			}, function(err, tx) {
-				if(err != null) reject(err)
+				if(err != null) reject(err);
 				else resolve(tx);
 			});
 		});
@@ -76,7 +119,7 @@ exchange.prototype.getTransactions = function(account) {
 	});
 };
 
-exchange.prototype.initPortfolio = function() {
+exchange.prototype.init = function() {
 	return new Promise((resolve, reject) => {
 
 		var portfolio = {};
@@ -124,4 +167,9 @@ exchange.prototype.initPortfolio = function() {
 	});
 }
 
-module.exports = exchange;
+
+
+module.exports = {
+	Exchange: exchange,
+	eventNames: eventNames,
+};

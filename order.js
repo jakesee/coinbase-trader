@@ -17,3 +17,4 @@ var order = function() {
 };
 
 
+module.exports = order;
