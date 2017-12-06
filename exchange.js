@@ -78,12 +78,12 @@ var exchange = function(client, currencies) {
 		}
 		else
 		{
-			// return new Promise((resolve, reject) => {
-			// 	tx.commit((err, response) => {
-			// 		if(err != null) reject(err);
-			// 		else resolve(tx);
-			// 	});
-			// });
+			return new Promise((resolve, reject) => {
+				tx.commit((err, response) => {
+					if(err != null) reject(err);
+					else resolve(tx);
+				});
+			});
 		}
 	};
 }
