@@ -23,7 +23,7 @@ trader = new trader('BTCTrader', calculator, {
 	paymentMethodId: config.xfersId,
 	buyLimit: 14673.44, // spot price cannot be negative, so wont buy
 	sellLimit: 18591.84,
-	isSeller: true,
+	isSeller: false,
 });
 trader.events.on('*', (event, trader, tx) => {
 	var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
