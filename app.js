@@ -43,5 +43,6 @@ exchange.events.on(ec.eventNames.spotprice, trader.trade);
 
 // start the trading!
 var portfolio = wait.for.promise(exchange.init());
+console.log(portfolio.BTC.transactions);
 console.log(columnify(exchange.getBillboard()));
-exchange.run(5000).mock();
+// exchange.run(5000).mock();
