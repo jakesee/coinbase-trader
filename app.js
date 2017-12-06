@@ -22,7 +22,7 @@ trader = new trader('BTCTrader', calculator, {
 	currency: 'BTC',
 	paymentMethodId: config.xfersId,
 	buyLimit: 14673.44, // spot price cannot be negative, so wont buy
-	sellLimit: 17089.84,
+	sellLimit: 18591.84,
 	isSeller: true,
 });
 trader.events.on('*', (event, trader, tx) => {
