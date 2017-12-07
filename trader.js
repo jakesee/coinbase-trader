@@ -14,7 +14,7 @@ var eventNames = {
 	sold: 'sold',
 };
 
-var trader = function(name, calculator, options) {
+var trader = function(name, calculator, order) {
 	
 	// identity
 	this.name = name;
@@ -22,92 +22,104 @@ var trader = function(name, calculator, options) {
 	this.events = new events.EventEmitter2({'wildcard': true});
 
 	// options
-	this.options = options;
-	_.defaults(options, {
-		'fund': 500,
+	_.defaults(order, {
+		'type': null,
+		'fund': 0,
 		'currency': 'BTC',
 		'paymentMethodId': null,
-		'buyLimit': -Infinity,
-		'sellLimit': Infinity,
-		'isSeller': false,
+		'limit': null,
+		'active': true,
 	});
+	this.order = order;
 
 	// tools
 	var calculator = calculator;
-	var isBusy = false;
 	
 	// *****************************************
 	// privileged functions
 	// *****************************************
 
-	this.trade = function(exchange, spotPrice) {
+	this.trade = function(exchange, spot) {
 
-		if(isBusy) return;
-		isBusy = true;
+		if(order.active == false || order.fund <= 0) return;
+		order.active = false;
 
-		// check whether to buy
-		var spot = spotPrice[options.currency].amount;
-		if(options.isSeller === false && spot <= options.buyLimit)
+		var spotprice = spot[order.currency].amount;
+		if(order.type === 'buy' && spotprice <= order.limit)
 		{
-			attemptBuy(exchange);
+			attemptBuy(exchange).then((committed) => {
+				order.active = !committed;
+			}, (err) => {
+				console.log(err);
+				order.active = true;
+			});
 		}
-		else if(options.isSeller === true && spot >= options.sellLimit)
+		else if(order.type === 'sell' && spotprice >= order.limit)
 		{
-			attemptSell(exchange);
+			attemptSell(exchange).then((committed) => {
+				order.active = !committed;
+			}, (err) => {
+				console.log(err);
+				order.active = true;
+			});
 		}
-
-		isBusy = false;
 	}
 
 
 	// *****************************************
 	// private functions
 	// *****************************************
-
 	var attemptBuy = function(exchange) {
-		exchange.getBuyCommit(
-			options.currency,
-			options.paymentMethodId,
-			options.fund,
-		).then(tx => {
-			var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-			if(quote <= options.buyLimit) {
-				exchange.commit(tx).then(tx => {
-					// toggle seller/buyer status
-					self.options.isSeller = true;
-					self.events.emit(eventNames.bought, self, tx);
-				});
-			}
-			else
-			{
-				self.events.emit(eventNames.buying, eventNames.buying, self, tx);	
-			}
-		}, err => {
-			self.events.emit(eventNames.buy_error, eventNames.buy_error, self, err);	
+		return new Promise((resolve, reject) => {
+			exchange.getBuyCommit(
+				order.currency,
+				order.paymentMethodId,
+				order.fund,
+			).then(tx => {
+				var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+				if(quote <= order.limit) {
+					exchange.commit(tx).then(tx => {
+						self.events.emit(eventNames.bought, eventNames.bought, self, tx);
+						resolve(true);
+					}, err => {
+						self.events.emit(eventNames.buy_error, eventNames.buy_error, self, err);
+						reject(err);
+					});
+				} else {
+					self.events.emit(eventNames.buying, eventNames.buying, self, tx);
+					resolve(false);
+				}
+			}, err => {
+				self.events.emit(eventNames.buy_error, eventNames.buy_error, self, err);
+				reject(err);
+			});
 		});
 	}
 
 	var attemptSell = function(exchange) {
-		exchange.getSellCommit(
-			options.currency,
-			options.paymentMethodId,
-			options.fund,
-		).then(tx => {
-			var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
-			if(quote >= options.sellLimit) {
-				exchange.commit(tx).then(tx => {
-					// toggle seller/buyer status
-					self.options.isSeller = false;
-					self.events.emit(eventNames.sold, eventNames.sold, self, tx);
-				});
-			}
-			else
-			{
-				self.events.emit(eventNames.selling, eventNames.selling, self, tx);	
-			}
-		}, err => {
-			self.events.emit(eventNames.sell_error, eventNames.sell_error, self, err);
-			console.log(err);
+		return new Promise((resolve, reject) => {
+			exchange.getSellCommit(
+				order.currency,
+				order.paymentMethodId,
+				order.fund,
+			).then(tx => {
+				var quote = Number(tx.subtotal.amount) / Number(tx.amount.amount);
+				if(quote >= order.limit) {
+					exchange.commit(tx).then(tx => {
+						self.events.emit(eventNames.sold, eventNames.sold, self, tx);
+						resolve(true);
+					}, err => {
+						self.events.emit(eventNames.sell_error, eventNames.sell_error, self, err);
+						reject(err);
+					});
+				} else {
+					self.events.emit(eventNames.selling, eventNames.selling, self, tx);
+					resolve(false);
+				}
+			}, err => {
+				self.events.emit(eventNames.sell_error, eventNames.sell_error, self, err);
+				reject(err);
+			});
 		});
 	}
 };

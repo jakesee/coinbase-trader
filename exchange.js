@@ -24,7 +24,7 @@ var exchange = function(client, currencies) {
 	var history = null;
 	var performance = {};
 	var handle = null;
-	var isMock = false;
+	var isMock = true;
 
 	// fetch prices
 	this.run = function(interval) {
@@ -57,9 +57,9 @@ var exchange = function(client, currencies) {
 		return this;
 	};
 
-	this.mock = function() {
-		isMock = true;
-		console.log('Running in mock mode.');
+	this.live = function() {
+		isMock = false;
+		console.log('Running in live mode.');
 	}
 
 	this.stop = function() {
@@ -78,12 +78,12 @@ var exchange = function(client, currencies) {
 		}
 		else
 		{
-			// return new Promise((resolve, reject) => {
-			// 	tx.commit((err, response) => {
-			// 		if(err != null) reject(err);
-			// 		else resolve(tx);
-			// 	});
-			// });
+			return new Promise((resolve, reject) => {
+				tx.commit((err, response) => {
+					if(err != null) reject(err);
+					else resolve(tx);
+				});
+			});
 		}
 	};
 }
