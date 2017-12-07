@@ -53,4 +53,4 @@ exchange.events.on(ec.eventNames.spotprice, (exchange, spot) => {
 // start the trading!
 var portfolio = wait.for.promise(exchange.init());
 console.log(columnify(exchange.getBillboard()));
-exchange.run(5000);
+exchange.run(5000).live();
