@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html ng-app="coinbot" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <script langauge="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.slim.js"></script>
+    <script langauge="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.6/angular.min.js"></script>
+    <script src="ng-app.js"></script>
+    <link rel="stylesheet" href="coinbot.css" />
+</head>
+<body ng-controller="PhoneListController">
+    <ul>
+        <li ng-repeat="phone in phones">
+           <span ng-bind="phone.name"></span> 
+           <p ng-bind="phone.snippet"></p>
+        </li>
+        <li>
+            <span>Nexus S</span>
+            <p>Fast just for faster with Nexus S.</p>
+        </li>
+        <li>
+            <span>Motorola XOOM with Wi-Fi</span>
+            <p>The Next, Next Generation tablet.</p>
+        </li>
+    </ul>
+    <p>Total number of phones: 2</p>
+
+    <table>
+        <thead>
+            <th>
+                <td>Principal</td>
+                <td>Bought</td>
+                <td>Coins</td>
+                <td>Target Sell</td>
+            </th>
+        </thead>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+</body>
+</html>
