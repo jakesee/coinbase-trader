@@ -9,22 +9,6 @@
     <link rel="stylesheet" href="coinbot.css" />
 </head>
 <body ng-controller="PhoneListController">
-    <ul>
-        <li ng-repeat="phone in phones">
-           <span ng-bind="phone.name"></span> 
-           <p ng-bind="phone.snippet"></p>
-        </li>
-        <li>
-            <span>Nexus S</span>
-            <p>Fast just for faster with Nexus S.</p>
-        </li>
-        <li>
-            <span>Motorola XOOM with Wi-Fi</span>
-            <p>The Next, Next Generation tablet.</p>
-        </li>
-    </ul>
-    <p>Total number of phones: 2</p>
-
     <table>
         <thead>
             <th>
@@ -35,9 +19,9 @@
             </th>
         </thead>
         <tr>
-            <td></td>
-            <td></td>
-            <td></td>
+            <td ng-bind="prices.BTC.base"></td>
+            <td ng-bind="prices.BTC.currency"></td>
+            <td ng-bind="prices.BTC.amount"></td>
             <td></td>
         </tr>
     </table>

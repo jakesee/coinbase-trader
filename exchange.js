@@ -39,7 +39,7 @@ var exchange = function(client, currencies) {
 				var timestamp = new Date().getTime();
 
 				Promise.all(promises).then(values => {
-					var spot = [];
+					var spot = {};
 					values.forEach(value => {
 						var price = value.data;
 						price.timestamp = timestamp;
