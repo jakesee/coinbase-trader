@@ -2,7 +2,7 @@
 
 var wait = require('wait-for-stuff');
 var events = require('eventemitter2');
-var _ = require('underscore');
+var _ = require('lodash');
 
 // **********************************
 

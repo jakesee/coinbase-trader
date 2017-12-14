@@ -3,7 +3,7 @@
 // fomattting helping
 var columnify = require('columnify');
 var wait = require('wait-for-stuff');
-var _ = require('underscore');
+var _ = require('lodash');
 
 // environment
 var config = {};
