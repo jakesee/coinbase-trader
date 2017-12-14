@@ -1,9 +1,10 @@
 var Gdax = require('./gdax.js');
 var tick = require('animation-loops');
 var columnify = require('columnify');
+var _ = require('lodash');
 // formatting numbers: http://mathjs.org/docs/reference/functions/format.html
 
-var gdax = new Gdax(['BTC-USD', 'LTC-USD', 'LTC-BTC']);
+var gdax = new Gdax(['BTC-USD', 'ETH-USD', 'ETH-BTC', 'LTC-USD', 'LTC-BTC']);
 
 gdax.run();
 
@@ -35,39 +36,63 @@ tick.add((elapsed, delta, stop) => {
 	//   last_size: '0.01900000' }
 
 	var output = [
-		{ 
-			'Product': 'BTC-USD',
-			'Price': Number(data.ticker['BTC-USD'].price),
-			'Side': data.ticker['BTC-USD'].side,
-			'low_24h': data.ticker['BTC-USD'].low_24h,
-			'high_24h': data.ticker['BTC-USD'].high_24h,
-			'best_bid': data.ticker['BTC-USD'].best_bid,
-			'best_ask': data.ticker['BTC-USD'].best_ask,
-			'bid_size': data.bids[Number(data.ticker['BTC-USD'].best_bid)] == undefined ? 0 : data.bids[Number(data.ticker['BTC-USD'].best_bid)].size,
-			'ask_size': data.asks[Number(data.ticker['BTC-USD'].best_ask)] == undefined ? 0 : data.asks[Number(data.ticker['BTC-USD'].best_ask)].size,
-		},
-		{ 
-			'Product': 'LTC-USD',
-			'Price': Number(data.ticker['LTC-USD'].price),
-			'Side': data.ticker['LTC-USD'].side,
-			'low_24h': data.ticker['LTC-USD'].low_24h,
-			'high_24h': data.ticker['LTC-USD'].high_24h,
-			'best_bid': data.ticker['LTC-USD'].best_bid,
-			'best_ask': data.ticker['LTC-USD'].best_ask,
-		},
+		// { 
+		// 	'Product': 'BTC-USD',
+		// 	'Price': Number(data['BTC-USD'].ticker.price),
+		// 	'Side': data['BTC-USD'].ticker.side,
+		// 	'low_24h': data['BTC-USD'].ticker.low_24h,
+		// 	'high_24h': data['BTC-USD'].ticker.high_24h,
+		// 	'best_bid': data['BTC-USD'].ticker.best_bid,
+		// 	'best_ask': data['BTC-USD'].ticker.best_ask,
+		// 	'bid_size': data['BTC-USD'].bids[0].size,
+		// 	'ask_size': data['BTC-USD'].asks[0].size
+		// },
+		// { 
+		// 	'Product': 'LTC-USD',
+		// 	'Price': Number(data['LTC-USD'].ticker.price),
+		// 	'Side': data['LTC-USD'].ticker.side,
+		// 	'low_24h': data['LTC-USD'].ticker.low_24h,
+		// 	'high_24h': data['LTC-USD'].ticker.high_24h,
+		// 	'best_bid': data['LTC-USD'].ticker.best_bid,
+		// 	'best_ask': data['LTC-USD'].ticker.best_ask,
+		// 	'bid_size': data['LTC-USD'].bids[0].size,
+		// 	'ask_size': data['LTC-USD'].asks[0].size
+		// },
 		{ 
 			'Product': 'LTC-BTC',
-			'Price': Number(data.ticker['LTC-BTC'].price),
-			'Side': data.ticker['LTC-BTC'].side,
-			'low_24h': data.ticker['LTC-BTC'].low_24h,
-			'high_24h': data.ticker['LTC-BTC'].high_24h,
-			'best_bid': data.ticker['LTC-BTC'].best_bid,
-			'best_ask': data.ticker['LTC-BTC'].best_ask,
+			'Price': Number(data['LTC-BTC'].ticker.price),
+			'Side': data['LTC-BTC'].ticker.side,
+			'low_24h': data['LTC-BTC'].ticker.low_24h,
+			'high_24h': data['LTC-BTC'].ticker.high_24h,
+			'best_bid': data['LTC-BTC'].ticker.best_bid,
+			'best_ask': data['LTC-BTC'].ticker.best_ask,
+			// 'bid_size': data['LTC-BTC'].bids[0].size,
+			// 'ask_size': data['LTC-BTC'].asks[0].size
 		},
 		{ 
 			'Product': 'LTC-BTC*',
-			'Price': (Number(data.ticker['LTC-USD'].price) / Number(data.ticker['BTC-USD'].price)),
+			'Price': (Number(data['LTC-USD'].ticker.price) / Number(data['BTC-USD'].ticker.price)),
+			'bid_size': _.reduce(_.take(data['LTC-BTC'].bids, 3), (total, offer) => { return total + offer.price * offer.size }, 0),
+			'ask_size': _.reduce(_.take(data['LTC-BTC'].asks, 3), (total, offer) => { return total + offer.price * offer.size }, 0)
 		},
-	]
+		{ 
+			'Product': 'ETH-BTC',
+			'Price': Number(data['ETH-BTC'].ticker.price),
+			'Side': data['ETH-BTC'].ticker.side,
+			'low_24h': data['ETH-BTC'].ticker.low_24h,
+			'high_24h': data['ETH-BTC'].ticker.high_24h,
+			'best_bid': data['ETH-BTC'].ticker.best_bid,
+			'best_ask': data['ETH-BTC'].ticker.best_ask,
+			// 'bid_size': data['ETH-BTC'].bids[0].size,
+			// 'ask_size': data['ETH-BTC'].asks[0].size
+		},
+		{ 
+			'Product': 'ETH-BTC*',
+			'Price': (Number(data['ETH-USD'].ticker.price) / Number(data['BTC-USD'].ticker.price)),
+			'bid_size': _.reduce(_.take(data['ETH-BTC'].bids, 3), (total, offer) => { return total + offer.price * offer.size }, 0),
+			'ask_size': _.reduce(_.take(data['ETH-BTC'].asks, 3), (total, offer) => { return total + offer.price * offer.size }, 0)
+		},
+	];
+
 	console.log(columnify(output));
 });

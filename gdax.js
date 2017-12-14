@@ -6,13 +6,14 @@ module.exports = function(products) {
     // initialization
     var self = this;
     const ws = new WebSocket('wss://ws-feed.gdax.com', { perMessageDeflate: false });
-    var bids = {};
-    var asks = {};
-    var nett = {};
-    var ticker = {};
+    var feed = {};
     var products = products;
     _.each(products, product => {
-        ticker[product] = { sequence: 0 };
+    	feed[product] = {
+    		'ticker': { price:0, size: 0, sequence: 0 },
+    		'bids': {}, // hash
+    		'asks': {}, // hash
+    	}
     });
 
     this.run = function() {
@@ -31,20 +32,17 @@ module.exports = function(products) {
         // As the data streams in, update our data structures
         ws.on('message', data => {
             var data = JSON.parse(data);
+            var product_id = data.product_id;
             if(data.type == 'snapshot') {
                 _.each(data.bids, bid => {
-                    var index = Number(bid[0]);
-                    bids[index] = {
-                        'price': Number(bid[0]),
-                        'size': Number(bid[1])
-                    };
+                	let price = Number(bid[0]);
+                	let size = Number(bid[1]);
+                    feed[product_id].bids[price] = { 'price': price, 'size': size };
                 });
                 _.each(data.asks, ask => {
-                    var index = Number(ask[0]);
-                    asks[index] = {
-                        'price': Number(ask[0]),
-                        'size': Number(ask[1])
-                    };
+                	let price = Number(ask[0]);
+                	let size = Number(ask[1]);
+                    feed[product_id].asks[price] = { 'price': price, 'size': size };
                 });
             } else if(data.type == 'l2update') {
                 _.each(data.changes, change => {
@@ -52,31 +50,33 @@ module.exports = function(products) {
                     var price = Number(change[1]);
                     var size = Number(change[2]);
 
-                    if(size == 0 && type == 'buy') delete bids[price];
-                    else if(size == 0 && type == 'sell') delete asks[price];
+                    if(size == 0 && type == 'buy') delete feed[product_id].bids[price];
+                    else if(size == 0 && type == 'sell') delete feed[product_id].asks[price];
                     else {
                         var data = { 'price': price, 'size': size }
-                        if(type == 'buy')       bids[price] = data;
-                        else if(type == 'sell') asks[price] = data;
+                        if(type == 'buy')       feed[product_id].bids[price] = data;
+                        else if(type == 'sell') feed[product_id].asks[price] = data;
                     }
                 });
             } else if(data.type == 'ticker') {
-
-                if(data.sequence > ticker[data.product_id].sequence)
+                if(data.sequence > feed[product_id].ticker.sequence)
                 {
-                    ticker[data.product_id] = data;
+                	feed[product_id].ticker = data;
                 }
             }
         });
     };
 
     this.getData = function () { 
-        // make a copy so that 
-        return {
-            'bids': bids,
-            'asks': asks,
-            'ticker': ticker
-        };
+        var data = {};
+        _.each(products, product => {
+        	data[product] = {
+	        	'ticker': feed[product].ticker,
+	        	'bids': _.orderBy(feed[product].bids, ['price'], ['desc']),
+	        	'asks': _.orderBy(feed[product].asks, ['price'], ['asc']),
+        	};
+        });
+        return data;
     }
 
     function getNettSizeAroundPrice(high, low)
