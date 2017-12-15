@@ -10,7 +10,7 @@ module.exports = function(products) {
     var products = products;
     _.each(products, product => {
     	feed[product] = {
-    		'ticker': { price:0, size: 0, sequence: 0 },
+    		'ticker': { time: null, price:0, last_size: 0, sequence: 0 },
     		'bids': {}, // hash
     		'asks': {}, // hash
     	}
@@ -61,7 +61,10 @@ module.exports = function(products) {
             } else if(data.type == 'ticker') {
                 if(data.sequence > feed[product_id].ticker.sequence)
                 {
+                    data.price = Number(data.price);
+                    data.last_size = Number(data.last_size);
                 	feed[product_id].ticker = data;
+                    console.log(data);
                 }
             }
         });

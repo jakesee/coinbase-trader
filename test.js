@@ -36,28 +36,28 @@ tick.add((elapsed, delta, stop) => {
 	//   last_size: '0.01900000' }
 
 	var output = [
-		// { 
-		// 	'Product': 'BTC-USD',
-		// 	'Price': Number(data['BTC-USD'].ticker.price),
-		// 	'Side': data['BTC-USD'].ticker.side,
-		// 	'low_24h': data['BTC-USD'].ticker.low_24h,
-		// 	'high_24h': data['BTC-USD'].ticker.high_24h,
-		// 	'best_bid': data['BTC-USD'].ticker.best_bid,
-		// 	'best_ask': data['BTC-USD'].ticker.best_ask,
-		// 	'bid_size': data['BTC-USD'].bids[0].size,
-		// 	'ask_size': data['BTC-USD'].asks[0].size
-		// },
-		// { 
-		// 	'Product': 'LTC-USD',
-		// 	'Price': Number(data['LTC-USD'].ticker.price),
-		// 	'Side': data['LTC-USD'].ticker.side,
-		// 	'low_24h': data['LTC-USD'].ticker.low_24h,
-		// 	'high_24h': data['LTC-USD'].ticker.high_24h,
-		// 	'best_bid': data['LTC-USD'].ticker.best_bid,
-		// 	'best_ask': data['LTC-USD'].ticker.best_ask,
-		// 	'bid_size': data['LTC-USD'].bids[0].size,
-		// 	'ask_size': data['LTC-USD'].asks[0].size
-		// },
+		{ 
+			'Product': 'BTC-USD',
+			'Price': Number(data['BTC-USD'].ticker.price),
+			'Side': data['BTC-USD'].ticker.side,
+			'low_24h': data['BTC-USD'].ticker.low_24h,
+			'high_24h': data['BTC-USD'].ticker.high_24h,
+			'best_bid': data['BTC-USD'].ticker.best_bid,
+			'best_ask': data['BTC-USD'].ticker.best_ask,
+			'bid_size': data['BTC-USD'].bids[0].size,
+			'ask_size': data['BTC-USD'].asks[0].size
+		},
+		{ 
+			'Product': 'LTC-USD',
+			'Price': Number(data['LTC-USD'].ticker.price),
+			'Side': data['LTC-USD'].ticker.side,
+			'low_24h': data['LTC-USD'].ticker.low_24h,
+			'high_24h': data['LTC-USD'].ticker.high_24h,
+			'best_bid': data['LTC-USD'].ticker.best_bid,
+			'best_ask': data['LTC-USD'].ticker.best_ask,
+			'bid_size': data['LTC-USD'].bids[0].size,
+			'ask_size': data['LTC-USD'].asks[0].size
+		},
 		{ 
 			'Product': 'LTC-BTC',
 			'Price': Number(data['LTC-BTC'].ticker.price),
@@ -94,5 +94,16 @@ tick.add((elapsed, delta, stop) => {
 		},
 	];
 
-	console.log(columnify(output));
+	// console.log(columnify(output));
 });
+
+
+// strategies
+/*
+BUY LTC with BTC when BTC has breached resistance level before LTC does
+BUY LTC with 
+
+if LTC-BTC is low because BTC is high and LTC is low, then buy LTC
+if LTC-BTC is low because both BTC and LTC is low, then hold.
+ll
+*/
