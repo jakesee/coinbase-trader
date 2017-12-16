@@ -94,7 +94,7 @@ tick.add((elapsed, delta, stop) => {
 	else
 	{
 		//console.log(_.take(data['LTC-BTC'].bids, 3));
-		console.log(columnify(output));
+		// console.log(columnify(output));
 		console.log(columnify([wallet]));
 	}
 });
