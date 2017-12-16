@@ -10,7 +10,7 @@ var gdax = new Gdax(products);
 gdax.run();
 
 var wallet = { 'LTC': 10.147874512661735, 'BTC': 0 };
-var action = 'null';
+var action = null;
 
 var lastTime = 0;
 tick.add((elapsed, delta, stop) => {
