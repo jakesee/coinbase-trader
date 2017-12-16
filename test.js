@@ -9,8 +9,8 @@ var gdax = new Gdax(products);
 
 gdax.run();
 
-var wallet = { 'LTC': 0, 'BTC': 0.16880029726516052 };
-var action = 'buy';
+var wallet = { 'LTC': 10.147874512661735, 'BTC': 0 };
+var action = 'null';
 
 var lastTime = 0;
 tick.add((elapsed, delta, stop) => {
@@ -93,9 +93,9 @@ tick.add((elapsed, delta, stop) => {
 	}
 	else
 	{
-		// console.log(_.take(data['LTC-BTC'].bids, 3));
-		// console.log(columnify(output));
-		// console.log(columnify([wallet]));
+		//console.log(_.take(data['LTC-BTC'].bids, 3));
+		console.log(columnify(output));
+		console.log(columnify([wallet]));
 	}
 });
 
@@ -111,6 +111,21 @@ ll
 
 When the bid volume is higher than the ask volume, the selling is stronger, and the price is likely to move lower.
 When the ask volume is higher than the bid volume, the buying is stronger, and the price is likely to move higher.
+*/
+
+// suppose price changes is random in short term, then all price positions are equally possible
+/*
+let x = buy price
+let y = sell price
+let e = efficient price
+let s = spot price
+let wts = want to sell
+let wtb = want to buy
+
+wts case 1:
+
+
+
 */
 
 
